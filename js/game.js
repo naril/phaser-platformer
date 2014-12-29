@@ -1,33 +1,87 @@
-var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+(function () {
+
+var game = new Phaser.Game(1024, 320, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
 function preload() {
-    game.time.advancedTiming = true;
-    game.debug.renderShadow = false;
-    game.stage.disableVisibilityChange = true;
-
-    //game.plugins.add(new Phaser.Plugin.Isometric(game));
-   /* game.load.atlasJSONHash('tileset', 'img/mapa.png', 'img/mapa.json');
-    game.physics.startSystem(Phaser.Plugin.Isometric.ISOARCADE);
-    game.iso.anchor.setTo(0.5, 0.1); */
-
-    game.load.tilemap('dung1', 'img/platformer.json', null, Phaser.Tilemap.TILED_JSON);
-    game.load.image('dirt-tiles', 'img/dirt-tiles.png');
-    193,202,203,204,205,206,207,208
-    226,227,228,229,230,231,232
-    249,250,251,252,253,254,255,256
-    273,275,276,278,279,280
+    game.load.tilemap('dung1', 'img/mapa-simple.json', null, Phaser.Tilemap.TILED_JSON);
+    game.load.image('blue-dirt', 'img/blue-dirt.png');
+    game.load.spritesheet('char', 'img/dude.png', 32, 48);
 }
 
+var map;
+var layer;
+var player;
+var cursors;
+var jumpButton;
+var facing = 'left';
+var jumpTimer = 0;
+
 function create() {
-	map = game.add.tilemap('dung1');
-	map.addTilesetImage('dirt-tiles');
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+	
+    map = game.add.tilemap('dung1');
+	map.addTilesetImage('blue-dirt');
+    map.setCollisionByExclusion([2,3,4,5,6,14]);
     layer = map.createLayer('layer1');
     layer.resizeWorld();
+    layer.debug = true;
+
+    game.physics.arcade.gravity.y = 250;
+    player = game.add.sprite(50, 20, 'char');
+    game.physics.enable(player, Phaser.Physics.ARCADE);
+    player.body.collideWorldBounds = true;
+    player.body.bounce.y = 0.2;
+    player.body.setSize(20, 32, 5, 16);
+
+    player.animations.add('left', [9, 10, 11], 10, true);
+   // player.animations.add('turn', [0, 1, 2], 20, true);
+    player.animations.add('right', [3, 4, 5], 10, true);
+
+    game.camera.follow(player);
+    cursors = game.input.keyboard.createCursorKeys();
+    jumpButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 }
 
 
 function update() {
+    game.physics.arcade.collide(player, layer);
+
+    player.body.velocity.x = 0;
+
+    if (cursors.left.isDown) {
+        player.body.velocity.x = -150;
+
+        if (facing != 'left') {
+            player.animations.play('left');
+            facing = 'left';
+        }
+    } else if (cursors.right.isDown) {
+        player.body.velocity.x = 150;
+
+        if (facing != 'right') {
+            player.animations.play('right');
+            facing = 'right';
+        }
+    } else {
+        if (facing != 'idle') {
+            player.animations.stop();
+
+            if (facing == 'left') {
+                player.frame = 0;
+            } else {
+                player.frame = 0;
+            }
+
+            facing = 'idle';
+        }
+    }
+    
+    if (jumpButton.isDown && player.body.onFloor() && game.time.now > jumpTimer)
+    {
+        player.body.velocity.y = -250;
+        jumpTimer = game.time.now + 750;
+    }
 
 }
 
-
+})();
